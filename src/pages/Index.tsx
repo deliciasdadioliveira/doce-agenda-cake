@@ -22,6 +22,10 @@ const Index = () => {
   const { orders, getOrdersByDate, getDailySummary } = useOrders();
   const { user, logout, loading } = useAuth();
 
+  const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
+  const [dayOrders, setDayOrders] = useState(getOrdersByDate(selectedDateString));
+  const [dailySummary, setDailySummary] = useState(getDailySummary(selectedDateString));
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-sweet-50 to-lavender-50 flex items-center justify-center">
@@ -36,10 +40,6 @@ const Index = () => {
   if (!user?.isAuthenticated) {
     return <LoginForm />;
   }
-
-  const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
-  const [dayOrders, setDayOrders] = useState(getOrdersByDate(selectedDateString));
-  const [dailySummary, setDailySummary] = useState(getDailySummary(selectedDateString));
 
   // Atualiza os dados quando orders ou selectedDate mudam
   useEffect(() => {
