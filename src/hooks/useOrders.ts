@@ -42,80 +42,85 @@ export type Order = Cake | Sweet | WeddingCandy;
 
 export const useOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const hasLoadedFromStorage = useRef(false);
+  const isInitialized = useRef(false);
 
-  // Carregar dados do localStorage apenas uma vez na inicialização
+  // Carregar dados APENAS na inicialização
   useEffect(() => {
-    if (!hasLoadedFromStorage.current) {
+    if (!isInitialized.current) {
+      console.log('🔄 Inicializando useOrders - carregando do localStorage');
       try {
         const savedOrders = localStorage.getItem('confeitaria-orders');
         if (savedOrders) {
           const parsedOrders = JSON.parse(savedOrders);
+          console.log('✅ Dados carregados do localStorage:', parsedOrders);
           setOrders(parsedOrders);
-          console.log('Pedidos carregados do localStorage:', parsedOrders);
+        } else {
+          console.log('ℹ️  Nenhum dado encontrado no localStorage');
         }
       } catch (error) {
-        console.error('Erro ao carregar pedidos:', error);
+        console.error('❌ Erro ao carregar pedidos:', error);
       }
-      hasLoadedFromStorage.current = true;
+      isInitialized.current = true;
     }
   }, []);
 
-  // Salvar dados no localStorage apenas após carregar os dados iniciais
+  // Salvar dados APENAS após inicialização e quando há mudanças
   useEffect(() => {
-    if (hasLoadedFromStorage.current) {
+    if (isInitialized.current) {
+      console.log('💾 Salvando pedidos no localStorage:', orders);
       try {
         localStorage.setItem('confeitaria-orders', JSON.stringify(orders));
-        console.log('Pedidos salvos no localStorage:', orders);
+        console.log('✅ Dados salvos com sucesso');
       } catch (error) {
-        console.error('Erro ao salvar pedidos:', error);
+        console.error('❌ Erro ao salvar pedidos:', error);
       }
     }
   }, [orders]);
 
   const addOrder = (orderData: Omit<Order, 'id' | 'createdAt'>) => {
-    const newOrder: Order = {
+    const newOrder = {
       ...orderData,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
-    };
+    } as Order;
     
+    console.log('➕ Adicionando novo pedido:', newOrder);
     setOrders(prev => {
       const updated = [...prev, newOrder];
-      console.log('Adicionando pedido:', newOrder);
-      console.log('Lista atualizada:', updated);
+      console.log('📋 Lista atualizada:', updated);
       return updated;
     });
   };
 
   const updateOrder = (id: string, updatedOrder: Partial<Order>) => {
+    console.log('✏️ Atualizando pedido:', id, updatedOrder);
     setOrders(prev => {
       const updated = prev.map(order => 
         order.id === id ? { ...order, ...updatedOrder } : order
       );
-      console.log('Atualizando pedido:', id, updatedOrder);
-      console.log('Lista atualizada:', updated);
+      console.log('📋 Lista atualizada:', updated);
       return updated;
     });
   };
 
   const deleteOrder = (id: string) => {
+    console.log('🗑️ Removendo pedido:', id);
     setOrders(prev => {
       const updated = prev.filter(order => order.id !== id);
-      console.log('Removendo pedido:', id);
-      console.log('Lista atualizada:', updated);
+      console.log('📋 Lista atualizada:', updated);
       return updated;
     });
   };
 
   const getOrdersByDate = (date: string) => {
-    console.log('getOrdersByDate called with:', date);
-    console.log('All orders:', orders);
+    console.log('📅 getOrdersByDate chamado com:', date);
+    console.log('📋 Todos os pedidos:', orders);
     const filtered = orders.filter(order => {
-      console.log(`Comparing order date "${order.date}" with "${date}"`);
-      return order.date === date;
+      const match = order.date === date;
+      console.log(`🔍 Comparando "${order.date}" com "${date}": ${match}`);
+      return match;
     });
-    console.log('Filtered orders:', filtered);
+    console.log('✅ Pedidos filtrados:', filtered);
     return filtered;
   };
 
