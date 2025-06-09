@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 export interface Cake {
   id: string;
@@ -43,114 +43,80 @@ export type Order = Cake | Sweet | WeddingCandy;
 export const useOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const isInitialized = useRef(false);
-  const isLoading = useRef(false);
+  const hasLoadedData = useRef(false);
 
   // Carregar dados APENAS na inicialização
   useEffect(() => {
-    if (!isInitialized.current && !isLoading.current) {
-      isLoading.current = true;
-      console.log('🔄 [useOrders] Inicializando - carregando localStorage...');
+    if (!isInitialized.current) {
+      isInitialized.current = true;
       
       try {
         const savedOrders = localStorage.getItem('confeitaria-orders');
         if (savedOrders) {
           const parsedOrders = JSON.parse(savedOrders);
-          console.log('✅ [useOrders] Dados carregados:', parsedOrders.length, 'pedidos');
-          console.log('📊 [useOrders] Detalhes:', parsedOrders);
-          setOrders(parsedOrders);
-        } else {
-          console.log('ℹ️ [useOrders] Nenhum dado no localStorage');
-          setOrders([]);
+          if (Array.isArray(parsedOrders) && parsedOrders.length > 0) {
+            setOrders(parsedOrders);
+            hasLoadedData.current = true;
+          }
         }
       } catch (error) {
         console.error('❌ [useOrders] Erro ao carregar:', error);
-        setOrders([]);
       }
-      
-      isInitialized.current = true;
-      isLoading.current = false;
-      console.log('✅ [useOrders] Inicialização concluída');
     }
   }, []);
 
-  // Salvar dados APENAS após inicialização e quando há mudanças reais
+  // Salvar dados APENAS quando há mudanças válidas
   useEffect(() => {
-    if (isInitialized.current && !isLoading.current) {
-      console.log('💾 [useOrders] Salvando no localStorage:', orders.length, 'pedidos');
-      console.log('📊 [useOrders] Dados a salvar:', orders);
-      
+    // Só salva se:
+    // 1. Já foi inicializado
+    // 2. E (tem dados carregados OU há pedidos para salvar)
+    if (isInitialized.current && (hasLoadedData.current || orders.length > 0)) {
       try {
         localStorage.setItem('confeitaria-orders', JSON.stringify(orders));
-        console.log('✅ [useOrders] Dados salvos com sucesso');
-        
-        // Verificar se foi salvo corretamente
-        const verification = localStorage.getItem('confeitaria-orders');
-        const verificationData = verification ? JSON.parse(verification) : [];
-        console.log('🔍 [useOrders] Verificação - dados salvos:', verificationData.length, 'pedidos');
       } catch (error) {
         console.error('❌ [useOrders] Erro ao salvar:', error);
       }
     }
   }, [orders]);
 
-  const addOrder = (orderData: Omit<Order, 'id' | 'createdAt'>) => {
-    console.log('➕ [useOrders] Adicionando novo pedido:', orderData);
-    console.log('📊 [useOrders] Estado atual antes:', orders.length, 'pedidos');
-    
+  const addOrder = useCallback((orderData: Omit<Order, 'id' | 'createdAt'>) => {
     const newOrder = {
       ...orderData,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     } as Order;
     
-    console.log('🆕 [useOrders] Pedido criado:', newOrder);
-    
     setOrders(prev => {
-      console.log('📋 [useOrders] Estado anterior:', prev.length, 'pedidos');
       const updated = [...prev, newOrder];
-      console.log('📋 [useOrders] Estado atualizado:', updated.length, 'pedidos');
-      console.log('📊 [useOrders] Lista completa:', updated);
+      hasLoadedData.current = true; // Marca que agora tem dados
       return updated;
     });
-  };
+  }, []);
 
-  const updateOrder = (id: string, updatedOrder: Partial<Order>) => {
-    console.log('✏️ [useOrders] Atualizando pedido:', id, updatedOrder);
-    
-    setOrders(prev => {
-      const updated = prev.map(order => 
+  const updateOrder = useCallback((id: string, updatedOrder: Partial<Order>) => {
+    setOrders(prev => 
+      prev.map(order => 
         order.id === id ? { ...order, ...updatedOrder } as Order : order
-      );
-      console.log('📋 [useOrders] Lista após atualização:', updated.length, 'pedidos');
-      return updated;
-    });
-  };
+      )
+    );
+  }, []);
 
-  const deleteOrder = (id: string) => {
-    console.log('🗑️ [useOrders] Removendo pedido:', id);
-    
-    setOrders(prev => {
-      const updated = prev.filter(order => order.id !== id);
-      console.log('📋 [useOrders] Lista após remoção:', updated.length, 'pedidos');
-      return updated;
-    });
-  };
+  const deleteOrder = useCallback((id: string) => {
+    setOrders(prev => prev.filter(order => order.id !== id));
+  }, []);
 
-  const getOrdersByDate = (date: string) => {
-    const filtered = orders.filter(order => order.date === date);
-    console.log(`📅 [useOrders] getOrdersByDate(${date}):`, filtered.length, 'pedidos');
-    console.log('🔍 [useOrders] Total de pedidos no sistema:', orders.length);
-    return filtered;
-  };
+  const getOrdersByDate = useCallback((date: string) => {
+    return orders.filter(order => order.date === date);
+  }, [orders]);
 
-  const getOrdersByMonth = (year: number, month: number) => {
+  const getOrdersByMonth = useCallback((year: number, month: number) => {
     return orders.filter(order => {
       const orderDate = new Date(order.date);
       return orderDate.getFullYear() === year && orderDate.getMonth() === month;
     });
-  };
+  }, [orders]);
 
-  const getDailySummary = (date: string) => {
+  const getDailySummary = useCallback((date: string) => {
     const dayOrders = getOrdersByDate(date);
     
     const cakes = dayOrders.filter(order => order.type === 'cake') as Cake[];
@@ -181,9 +147,9 @@ export const useOrders = () => {
       pickupTimes,
       totalOrders: dayOrders.length
     };
-  };
+  }, [getOrdersByDate]);
 
-  const getMonthlySummary = (year: number, month: number) => {
+  const getMonthlySummary = useCallback((year: number, month: number) => {
     const monthOrders = getOrdersByMonth(year, month);
     
     const totalValue = monthOrders.reduce((sum, order) => sum + order.value, 0);
@@ -198,7 +164,7 @@ export const useOrders = () => {
       totalWeddings,
       totalOrders: monthOrders.length
     };
-  };
+  }, [getOrdersByMonth]);
 
   return {
     orders,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,14 +26,17 @@ const Index = () => {
   const todayString = format(new Date(), 'yyyy-MM-dd');
 
   // Calcular os pedidos diretamente sem useState separado
-  const dayOrders = getOrdersByDate(selectedDateString);
-  const dailySummary = getDailySummary(selectedDateString);
+  const dayOrders = useMemo(() => getOrdersByDate(selectedDateString), [getOrdersByDate, selectedDateString]);
+  const dailySummary = useMemo(() => getDailySummary(selectedDateString), [getDailySummary, selectedDateString]);
 
-  // Função helper também no topo
-  const hasOrdersOnDate = (date: Date) => {
-    const dateString = format(date, 'yyyy-MM-dd');
-    return getOrdersByDate(dateString).length > 0;
-  };
+  // Função helper otimizada com useMemo
+  const hasOrdersOnDate = useMemo(() => {
+    const datesWithOrders = new Set(orders.map(order => order.date));
+    return (date: Date) => {
+      const dateString = format(date, 'yyyy-MM-dd');
+      return datesWithOrders.has(dateString);
+    };
+  }, [orders]);
 
   // AGORA sim podemos ter returns condicionais
   if (loading) {
