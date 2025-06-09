@@ -18,5 +18,4 @@ export default defineConfig(({ command }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: command === 'build' ? '/doce-agenda-cake/' : '/',
 }));

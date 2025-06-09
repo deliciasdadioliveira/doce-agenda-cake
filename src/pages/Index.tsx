@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +16,7 @@ import { MonthlySummary } from '@/components/MonthlySummary';
 import { LoginForm } from '@/components/LoginForm';
 
 const Index = () => {
+  // TODOS os hooks devem estar aqui no topo
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const { orders, getOrdersByDate, getDailySummary } = useOrders();
@@ -26,6 +26,19 @@ const Index = () => {
   const [dayOrders, setDayOrders] = useState(getOrdersByDate(selectedDateString));
   const [dailySummary, setDailySummary] = useState(getDailySummary(selectedDateString));
 
+  // useEffect também deve estar no topo
+  useEffect(() => {
+    setDayOrders(getOrdersByDate(selectedDateString));
+    setDailySummary(getDailySummary(selectedDateString));
+  }, [orders, selectedDateString, getOrdersByDate, getDailySummary]);
+
+  // Função helper também no topo
+  const hasOrdersOnDate = (date: Date) => {
+    const dateString = format(date, 'yyyy-MM-dd');
+    return getOrdersByDate(dateString).length > 0;
+  };
+
+  // AGORA sim podemos ter returns condicionais
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-sweet-50 to-lavender-50 flex items-center justify-center">
@@ -40,17 +53,6 @@ const Index = () => {
   if (!user?.isAuthenticated) {
     return <LoginForm />;
   }
-
-  // Atualiza os dados quando orders ou selectedDate mudam
-  useEffect(() => {
-    setDayOrders(getOrdersByDate(selectedDateString));
-    setDailySummary(getDailySummary(selectedDateString));
-  }, [orders, selectedDateString, getOrdersByDate, getDailySummary]);
-
-  const hasOrdersOnDate = (date: Date) => {
-    const dateString = format(date, 'yyyy-MM-dd');
-    return getOrdersByDate(dateString).length > 0;
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sweet-50 to-lavender-50 p-4">
