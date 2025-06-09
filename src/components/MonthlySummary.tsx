@@ -1,4 +1,4 @@
-
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, DollarSign, Package, Calendar } from 'lucide-react';
@@ -11,7 +11,9 @@ interface MonthlySummaryProps {
 
 export const MonthlySummary = ({ year, month }: MonthlySummaryProps) => {
   const { getMonthlySummary } = useOrders();
-  const summary = getMonthlySummary(year, month);
+  
+  // Usar useMemo para garantir que o summary seja recalculado quando necessário
+  const summary = useMemo(() => getMonthlySummary(year, month), [getMonthlySummary, year, month]);
 
   const monthNames = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',

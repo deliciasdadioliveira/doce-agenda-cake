@@ -1,4 +1,4 @@
-
+import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Clock, Package } from 'lucide-react';
@@ -11,11 +11,10 @@ interface DailySummaryProps {
 }
 
 export const DailySummary = ({ date }: DailySummaryProps) => {
-  const { orders, getDailySummary } = useOrders();
-  const summary = getDailySummary(date);
+  const { getDailySummary } = useOrders();
   
-  // Força re-renderização quando orders mudam
-  const ordersCount = orders.length;
+  // Usar useMemo para garantir que o summary seja recalculado quando necessário
+  const summary = useMemo(() => getDailySummary(date), [getDailySummary, date]);
 
   const formatDate = (dateString: string) => {
     try {
