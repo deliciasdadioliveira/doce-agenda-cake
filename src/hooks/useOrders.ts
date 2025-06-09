@@ -43,84 +43,103 @@ export type Order = Cake | Sweet | WeddingCandy;
 export const useOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const isInitialized = useRef(false);
+  const isLoading = useRef(false);
 
   // Carregar dados APENAS na inicialização
   useEffect(() => {
-    if (!isInitialized.current) {
-      console.log('🔄 Inicializando useOrders - carregando do localStorage');
+    if (!isInitialized.current && !isLoading.current) {
+      isLoading.current = true;
+      console.log('🔄 [useOrders] Inicializando - carregando localStorage...');
+      
       try {
         const savedOrders = localStorage.getItem('confeitaria-orders');
         if (savedOrders) {
           const parsedOrders = JSON.parse(savedOrders);
-          console.log('✅ Dados carregados do localStorage:', parsedOrders);
+          console.log('✅ [useOrders] Dados carregados:', parsedOrders.length, 'pedidos');
+          console.log('📊 [useOrders] Detalhes:', parsedOrders);
           setOrders(parsedOrders);
         } else {
-          console.log('ℹ️  Nenhum dado encontrado no localStorage');
+          console.log('ℹ️ [useOrders] Nenhum dado no localStorage');
+          setOrders([]);
         }
       } catch (error) {
-        console.error('❌ Erro ao carregar pedidos:', error);
+        console.error('❌ [useOrders] Erro ao carregar:', error);
+        setOrders([]);
       }
+      
       isInitialized.current = true;
+      isLoading.current = false;
+      console.log('✅ [useOrders] Inicialização concluída');
     }
   }, []);
 
-  // Salvar dados APENAS após inicialização e quando há mudanças
+  // Salvar dados APENAS após inicialização e quando há mudanças reais
   useEffect(() => {
-    if (isInitialized.current) {
-      console.log('💾 Salvando pedidos no localStorage:', orders);
+    if (isInitialized.current && !isLoading.current) {
+      console.log('💾 [useOrders] Salvando no localStorage:', orders.length, 'pedidos');
+      console.log('📊 [useOrders] Dados a salvar:', orders);
+      
       try {
         localStorage.setItem('confeitaria-orders', JSON.stringify(orders));
-        console.log('✅ Dados salvos com sucesso');
+        console.log('✅ [useOrders] Dados salvos com sucesso');
+        
+        // Verificar se foi salvo corretamente
+        const verification = localStorage.getItem('confeitaria-orders');
+        const verificationData = verification ? JSON.parse(verification) : [];
+        console.log('🔍 [useOrders] Verificação - dados salvos:', verificationData.length, 'pedidos');
       } catch (error) {
-        console.error('❌ Erro ao salvar pedidos:', error);
+        console.error('❌ [useOrders] Erro ao salvar:', error);
       }
     }
   }, [orders]);
 
   const addOrder = (orderData: Omit<Order, 'id' | 'createdAt'>) => {
+    console.log('➕ [useOrders] Adicionando novo pedido:', orderData);
+    console.log('📊 [useOrders] Estado atual antes:', orders.length, 'pedidos');
+    
     const newOrder = {
       ...orderData,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
     } as Order;
     
-    console.log('➕ Adicionando novo pedido:', newOrder);
+    console.log('🆕 [useOrders] Pedido criado:', newOrder);
+    
     setOrders(prev => {
+      console.log('📋 [useOrders] Estado anterior:', prev.length, 'pedidos');
       const updated = [...prev, newOrder];
-      console.log('📋 Lista atualizada:', updated);
+      console.log('📋 [useOrders] Estado atualizado:', updated.length, 'pedidos');
+      console.log('📊 [useOrders] Lista completa:', updated);
       return updated;
     });
   };
 
   const updateOrder = (id: string, updatedOrder: Partial<Order>) => {
-    console.log('✏️ Atualizando pedido:', id, updatedOrder);
+    console.log('✏️ [useOrders] Atualizando pedido:', id, updatedOrder);
+    
     setOrders(prev => {
       const updated = prev.map(order => 
-        order.id === id ? { ...order, ...updatedOrder } : order
+        order.id === id ? { ...order, ...updatedOrder } as Order : order
       );
-      console.log('📋 Lista atualizada:', updated);
+      console.log('📋 [useOrders] Lista após atualização:', updated.length, 'pedidos');
       return updated;
     });
   };
 
   const deleteOrder = (id: string) => {
-    console.log('🗑️ Removendo pedido:', id);
+    console.log('🗑️ [useOrders] Removendo pedido:', id);
+    
     setOrders(prev => {
       const updated = prev.filter(order => order.id !== id);
-      console.log('📋 Lista atualizada:', updated);
+      console.log('📋 [useOrders] Lista após remoção:', updated.length, 'pedidos');
       return updated;
     });
   };
 
   const getOrdersByDate = (date: string) => {
-    console.log('📅 getOrdersByDate chamado com:', date);
-    console.log('📋 Todos os pedidos:', orders);
-    const filtered = orders.filter(order => {
-      const match = order.date === date;
-      console.log(`🔍 Comparando "${order.date}" com "${date}": ${match}`);
-      return match;
-    });
-    console.log('✅ Pedidos filtrados:', filtered);
+    const filtered = orders.filter(order => order.date === date);
+    console.log(`📅 [useOrders] getOrdersByDate(${date}):`, filtered.length, 'pedidos');
+    console.log('🔍 [useOrders] Total de pedidos no sistema:', orders.length);
     return filtered;
   };
 
