@@ -23,19 +23,26 @@ const Index = () => {
   const { user, logout, loading } = useAuth();
 
   const selectedDateString = format(selectedDate, 'yyyy-MM-dd');
+  const todayString = format(new Date(), 'yyyy-MM-dd');
   const [dayOrders, setDayOrders] = useState(getOrdersByDate(selectedDateString));
   const [dailySummary, setDailySummary] = useState(getDailySummary(selectedDateString));
 
   // useEffect também deve estar no topo
   useEffect(() => {
-    setDayOrders(getOrdersByDate(selectedDateString));
+    console.log('Orders updated:', orders);
+    console.log('Selected date:', selectedDateString);
+    const ordersForDate = getOrdersByDate(selectedDateString);
+    console.log('Orders for selected date:', ordersForDate);
+    setDayOrders(ordersForDate);
     setDailySummary(getDailySummary(selectedDateString));
   }, [orders, selectedDateString, getOrdersByDate, getDailySummary]);
 
   // Função helper também no topo
   const hasOrdersOnDate = (date: Date) => {
     const dateString = format(date, 'yyyy-MM-dd');
-    return getOrdersByDate(dateString).length > 0;
+    const ordersForThisDate = getOrdersByDate(dateString);
+    console.log(`Checking date ${dateString}:`, ordersForThisDate);
+    return ordersForThisDate.length > 0;
   };
 
   // AGORA sim podemos ter returns condicionais
@@ -53,6 +60,9 @@ const Index = () => {
   if (!user?.isAuthenticated) {
     return <LoginForm />;
   }
+
+  console.log('Rendering Index. Total orders:', orders.length);
+  console.log('Day orders for', selectedDateString, ':', dayOrders);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-sweet-50 to-lavender-50 p-4">
@@ -160,6 +170,8 @@ const Index = () => {
                       <div className="text-center py-8 text-muted-foreground">
                         <div className="text-6xl mb-4">🍰</div>
                         <p>Nenhum pedido para esta data</p>
+                        <p className="text-sm mt-2">Data selecionada: {selectedDateString}</p>
+                        <p className="text-sm">Total de pedidos no sistema: {orders.length}</p>
                         <Button 
                           onClick={() => setIsAddModalOpen(true)}
                           className="mt-4 bg-gradient-to-r from-pink-400 to-lavender-400 hover:from-pink-500 hover:to-lavender-500 text-white"
@@ -179,7 +191,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="daily">
-            <DailySummary date={format(new Date(), 'yyyy-MM-dd')} />
+            <DailySummary date={todayString} />
           </TabsContent>
 
           <TabsContent value="monthly">

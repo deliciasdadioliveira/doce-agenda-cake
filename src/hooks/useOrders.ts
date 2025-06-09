@@ -78,7 +78,7 @@ export const useOrders = () => {
       ...orderData,
       id: crypto.randomUUID(),
       createdAt: new Date().toISOString(),
-    } as Order;
+    };
     
     setOrders(prev => {
       const updated = [...prev, newOrder];
@@ -109,7 +109,14 @@ export const useOrders = () => {
   };
 
   const getOrdersByDate = (date: string) => {
-    return orders.filter(order => order.date === date);
+    console.log('getOrdersByDate called with:', date);
+    console.log('All orders:', orders);
+    const filtered = orders.filter(order => {
+      console.log(`Comparing order date "${order.date}" with "${date}"`);
+      return order.date === date;
+    });
+    console.log('Filtered orders:', filtered);
+    return filtered;
   };
 
   const getOrdersByMonth = (year: number, month: number) => {
