@@ -25,15 +25,20 @@ export const LoginForm = () => {
       return;
     }
 
-    // Simular um pequeno delay para mostrar o loading
-    setTimeout(() => {
+    try {
+      // Pequeno delay apenas para mostrar feedback visual
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const success = login(email, password);
       if (!success) {
         setError('Credenciais inválidas');
-        setIsLoading(false);
       }
-      // Se success for true, o useAuth vai atualizar o estado e o Index.tsx vai renderizar automaticamente
-    }, 1000);
+      // Se success for true, o estado será atualizado automaticamente
+    } catch (error) {
+      setError('Erro ao fazer login');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

@@ -26,7 +26,7 @@ export const SweetForm = ({ defaultDate, onSuccess, editingOrder }: SweetFormPro
     date: editingOrder?.date || defaultDate,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.customerName || !formData.sweetType || !formData.flavor || formData.quantity <= 0) {
@@ -43,21 +43,30 @@ export const SweetForm = ({ defaultDate, onSuccess, editingOrder }: SweetFormPro
       type: 'sweet' as const,
     };
 
-    if (editingOrder) {
-      updateOrder(editingOrder.id, orderData);
+    try {
+      if (editingOrder) {
+        await updateOrder(editingOrder.id, orderData);
+        toast({
+          title: "Sucesso! 🎉",
+          description: "Pedido de doces atualizado com sucesso",
+        });
+      } else {
+        await addOrder(orderData);
+        toast({
+          title: "Sucesso! 🎉",
+          description: "Pedido de doces adicionado com sucesso",
+        });
+      }
+      
+      // Só fecha o modal após a operação ser concluída
+      onSuccess();
+    } catch (error) {
       toast({
-        title: "Sucesso! 🎉",
-        description: "Pedido de doces atualizado com sucesso",
-      });
-    } else {
-      addOrder(orderData);
-      toast({
-        title: "Sucesso! 🎉",
-        description: "Pedido de doces adicionado com sucesso",
+        title: "Erro",
+        description: "Erro ao salvar pedido. Tente novamente.",
+        variant: "destructive",
       });
     }
-
-    onSuccess();
   };
 
   return (

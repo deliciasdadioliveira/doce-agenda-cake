@@ -37,7 +37,7 @@ export const CakeForm = ({ defaultDate, onSuccess, editingOrder }: CakeFormProps
     'Bolo de Corte 100 fatias'
   ];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.customerName || !formData.size || !formData.flavor || !formData.filling || !formData.finishing) {
@@ -54,21 +54,30 @@ export const CakeForm = ({ defaultDate, onSuccess, editingOrder }: CakeFormProps
       type: 'cake' as const,
     };
 
-    if (editingOrder) {
-      updateOrder(editingOrder.id, orderData);
+    try {
+      if (editingOrder) {
+        await updateOrder(editingOrder.id, orderData);
+        toast({
+          title: "Sucesso! 🎉",
+          description: "Pedido de bolo atualizado com sucesso",
+        });
+      } else {
+        await addOrder(orderData);
+        toast({
+          title: "Sucesso! 🎉",
+          description: "Pedido de bolo adicionado com sucesso",
+        });
+      }
+      
+      // Só fecha o modal após a operação ser concluída
+      onSuccess();
+    } catch (error) {
       toast({
-        title: "Sucesso! 🎉",
-        description: "Pedido de bolo atualizado com sucesso",
-      });
-    } else {
-      addOrder(orderData);
-      toast({
-        title: "Sucesso! 🎉",
-        description: "Pedido de bolo adicionado com sucesso",
+        title: "Erro",
+        description: "Erro ao salvar pedido. Tente novamente.",
+        variant: "destructive",
       });
     }
-
-    onSuccess();
   };
 
   return (

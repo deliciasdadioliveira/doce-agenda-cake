@@ -20,13 +20,21 @@ export const OrderCard = ({ order }: OrderCardProps) => {
   const { deleteOrder } = useOrders();
   const { toast } = useToast();
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (window.confirm('Tem certeza que deseja excluir este pedido?')) {
-      deleteOrder(order.id);
-      toast({
-        title: "Pedido excluído",
-        description: "O pedido foi removido com sucesso",
-      });
+      try {
+        await deleteOrder(order.id);
+        toast({
+          title: "Pedido excluído",
+          description: "O pedido foi removido com sucesso",
+        });
+      } catch (error) {
+        toast({
+          title: "Erro",
+          description: "Erro ao excluir pedido. Tente novamente.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

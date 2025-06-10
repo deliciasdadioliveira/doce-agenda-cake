@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { firebaseOrdersService } from '@/services/firebaseOrders';
 
 export interface Cake {
   id: string;
@@ -42,73 +43,137 @@ export type Order = Cake | Sweet | WeddingCandy;
 
 export const useOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
-  const isInitialized = useRef(false);
-  const hasLoadedData = useRef(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Carregar dados APENAS na inicialização
+  // Carregar pedidos do Firebase na inicialização
   useEffect(() => {
-    if (!isInitialized.current) {
-      isInitialized.current = true;
+    const loadOrders = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        console.log('🔥 [Firebase Hook] Carregando pedidos do Firebase...');
+        const fetchedOrders = await firebaseOrdersService.getAllOrders();
+        setOrders(fetchedOrders);
+        
+        console.log(`✅ [Firebase Hook] ${fetchedOrders.length} pedidos carregados`);
+      } catch (err) {
+        console.error('❌ [Firebase Hook] Erro ao carregar pedidos:', err);
+        setError('Erro ao carregar pedidos. Tente novamente.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOrders();
+  }, []);
+
+  // Adicionar pedido
+  const addOrder = useCallback(async (orderData: Omit<Order, 'id' | 'createdAt'>) => {
+    try {
+      setError(null);
       
-      try {
-        const savedOrders = localStorage.getItem('confeitaria-orders');
-        if (savedOrders) {
-          const parsedOrders = JSON.parse(savedOrders);
-          if (Array.isArray(parsedOrders) && parsedOrders.length > 0) {
-            setOrders(parsedOrders);
-            hasLoadedData.current = true;
-          }
-        }
-      } catch (error) {
-        console.error('❌ [useOrders] Erro ao carregar:', error);
-      }
+      // Deixar o Firebase gerar o ID automaticamente
+      const firebaseId = await firebaseOrdersService.addOrder(orderData);
+      
+      // Criar objeto com ID do Firebase
+      const newOrder = {
+        ...orderData,
+        id: firebaseId,
+        createdAt: new Date().toISOString()
+      } as Order;
+      
+      // Atualizar estado local
+      setOrders(prev => [...prev, newOrder]);
+      
+      console.log('✅ [Firebase Hook] Pedido adicionado:', newOrder.id);
+    } catch (err) {
+      console.error('❌ [Firebase Hook] Erro ao adicionar pedido:', err);
+      setError('Erro ao adicionar pedido. Tente novamente.');
+      throw err;
     }
   }, []);
 
-  // Salvar dados APENAS quando há mudanças válidas
-  useEffect(() => {
-    // Só salva se:
-    // 1. Já foi inicializado
-    // 2. E (tem dados carregados OU há pedidos para salvar)
-    if (isInitialized.current && (hasLoadedData.current || orders.length > 0)) {
-      try {
-        localStorage.setItem('confeitaria-orders', JSON.stringify(orders));
-      } catch (error) {
-        console.error('❌ [useOrders] Erro ao salvar:', error);
-      }
+  // Atualizar pedido
+  const updateOrder = useCallback(async (id: string, updatedOrder: Partial<Order>) => {
+    try {
+      setError(null);
+      await firebaseOrdersService.updateOrder(id, updatedOrder);
+      
+      // Atualizar estado local
+      setOrders(prev => 
+        prev.map(order => 
+          order.id === id ? { ...order, ...updatedOrder } as Order : order
+        )
+      );
+      
+      console.log('✅ [Firebase Hook] Pedido atualizado:', id);
+    } catch (err) {
+      console.error('❌ [Firebase Hook] Erro ao atualizar pedido:', err);
+      setError('Erro ao atualizar pedido. Tente novamente.');
+      throw err;
     }
-  }, [orders]);
-
-  const addOrder = useCallback((orderData: Omit<Order, 'id' | 'createdAt'>) => {
-    const newOrder = {
-      ...orderData,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    } as Order;
-    
-    setOrders(prev => {
-      const updated = [...prev, newOrder];
-      hasLoadedData.current = true; // Marca que agora tem dados
-      return updated;
-    });
   }, []);
 
-  const updateOrder = useCallback((id: string, updatedOrder: Partial<Order>) => {
-    setOrders(prev => 
-      prev.map(order => 
-        order.id === id ? { ...order, ...updatedOrder } as Order : order
-      )
-    );
+  // Excluir pedido
+  const deleteOrder = useCallback(async (id: string) => {
+    try {
+      setError(null);
+      await firebaseOrdersService.deleteOrder(id);
+      
+      // Atualizar estado local
+      setOrders(prev => prev.filter(order => order.id !== id));
+      
+      console.log('✅ [Firebase Hook] Pedido excluído:', id);
+    } catch (err) {
+      console.error('❌ [Firebase Hook] Erro ao excluir pedido:', err);
+      setError('Erro ao excluir pedido. Tente novamente.');
+      throw err;
+    }
   }, []);
 
-  const deleteOrder = useCallback((id: string) => {
-    setOrders(prev => prev.filter(order => order.id !== id));
-  }, []);
-
+  // Buscar pedidos por data
   const getOrdersByDate = useCallback((date: string) => {
     return orders.filter(order => order.date === date);
   }, [orders]);
 
+  // Buscar pedidos por período
+  const getOrdersByDateRange = useCallback((startDate: string, endDate: string) => {
+    // Normalizar datas para formato YYYY-MM-DD
+    const normalizeDate = (dateStr: string) => {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+      }
+      
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        const [day, month, year] = dateStr.split('/');
+        return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+      }
+      
+      try {
+        const date = new Date(dateStr);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      } catch {
+        return dateStr;
+      }
+    };
+    
+    const normalizedStartDate = normalizeDate(startDate);
+    const normalizedEndDate = normalizeDate(endDate);
+    
+    const filteredOrders = orders.filter(order => {
+      const normalizedOrderDate = normalizeDate(order.date);
+      return normalizedOrderDate >= normalizedStartDate && normalizedOrderDate <= normalizedEndDate;
+    });
+    
+    return filteredOrders;
+  }, [orders]);
+
+  // Buscar pedidos por mês
   const getOrdersByMonth = useCallback((year: number, month: number) => {
     return orders.filter(order => {
       const orderDate = new Date(order.date);
@@ -116,6 +181,7 @@ export const useOrders = () => {
     });
   }, [orders]);
 
+  // Resumo diário
   const getDailySummary = useCallback((date: string) => {
     const dayOrders = getOrdersByDate(date);
     
@@ -149,6 +215,52 @@ export const useOrders = () => {
     };
   }, [getOrdersByDate]);
 
+  // Resumo de período
+  const getPeriodSummary = useCallback((startDate: string, endDate: string) => {
+    const periodOrders = getOrdersByDateRange(startDate, endDate);
+    
+    const cakes = periodOrders.filter(order => order.type === 'cake') as Cake[];
+    const sweets = periodOrders.filter(order => order.type === 'sweet') as Sweet[];
+    const weddings = periodOrders.filter(order => order.type === 'wedding') as WeddingCandy[];
+
+    const cakesBySize = cakes.reduce((acc, cake) => {
+      acc[cake.size] = (acc[cake.size] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const totalSweets = sweets.reduce((sum, sweet) => sum + sweet.quantity, 0);
+    const totalWeddings = weddings.reduce((sum, wedding) => sum + wedding.quantity, 0);
+    const totalValue = periodOrders.reduce((sum, order) => sum + order.value, 0);
+
+    // Agrupar pedidos por data
+    const ordersByDate = periodOrders.reduce((acc, order) => {
+      if (!acc[order.date]) {
+        acc[order.date] = [];
+      }
+      acc[order.date].push(order);
+      return acc;
+    }, {} as Record<string, Order[]>);
+
+    const dailyBreakdown = Object.entries(ordersByDate).map(([date, dayOrders]) => ({
+      date,
+      totalOrders: dayOrders.length,
+      totalValue: dayOrders.reduce((sum, order) => sum + order.value, 0),
+      cakes: dayOrders.filter(order => order.type === 'cake').length,
+      sweets: dayOrders.filter(order => order.type === 'sweet').reduce((sum, order) => sum + (order as Sweet).quantity, 0),
+      weddings: dayOrders.filter(order => order.type === 'wedding').reduce((sum, order) => sum + (order as WeddingCandy).quantity, 0)
+    })).sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      cakesBySize,
+      totalSweets,
+      totalWeddings,
+      totalValue,
+      totalOrders: periodOrders.length,
+      dailyBreakdown
+    };
+  }, [getOrdersByDateRange]);
+
+  // Resumo mensal
   const getMonthlySummary = useCallback((year: number, month: number) => {
     const monthOrders = getOrdersByMonth(year, month);
     
@@ -166,14 +278,35 @@ export const useOrders = () => {
     };
   }, [getOrdersByMonth]);
 
+  // Função para recarregar dados do servidor
+  const refreshOrders = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedOrders = await firebaseOrdersService.getAllOrders();
+      setOrders(fetchedOrders);
+      console.log('🔄 [Firebase Hook] Dados atualizados do servidor');
+    } catch (err) {
+      console.error('❌ [Firebase Hook] Erro ao atualizar dados:', err);
+      setError('Erro ao atualizar dados.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     orders,
+    loading,
+    error,
     addOrder,
     updateOrder,
     deleteOrder,
     getOrdersByDate,
+    getOrdersByDateRange,
     getOrdersByMonth,
     getDailySummary,
-    getMonthlySummary
+    getPeriodSummary,
+    getMonthlySummary,
+    refreshOrders
   };
-};
+}; 

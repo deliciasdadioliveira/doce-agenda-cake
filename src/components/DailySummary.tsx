@@ -144,4 +144,4 @@ export const DailySummary = ({ date }: DailySummaryProps) => {
       </Card>
     </div>
   );
-};
+}; 
