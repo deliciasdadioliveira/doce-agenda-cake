@@ -21,15 +21,15 @@ export const SweetForm = ({ defaultDate, onSuccess, editingOrder }: SweetFormPro
     customerName: editingOrder?.customerName || '',
     sweetType: editingOrder?.sweetType || '',
     quantity: editingOrder?.quantity || 0,
-    flavor: editingOrder?.flavor || '',
     value: editingOrder?.value || 0,
     date: editingOrder?.date || defaultDate,
+    observations: editingOrder?.observations || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.customerName || !formData.sweetType || !formData.flavor || formData.quantity <= 0) {
+    if (!formData.customerName || !formData.sweetType || formData.quantity <= 0) {
       toast({
         title: "Erro",
         description: "Por favor, preencha todos os campos obrigatórios",
@@ -40,6 +40,7 @@ export const SweetForm = ({ defaultDate, onSuccess, editingOrder }: SweetFormPro
 
     const orderData = {
       ...formData,
+      flavor: '', // Campo removido da interface, mas mantido para compatibilidade
       type: 'sweet' as const,
     };
 
@@ -50,6 +51,10 @@ export const SweetForm = ({ defaultDate, onSuccess, editingOrder }: SweetFormPro
           title: "Sucesso! 🎉",
           description: "Pedido de doces atualizado com sucesso",
         });
+        // Auto-refresh para edição
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       } else {
         await addOrder(orderData);
         toast({
@@ -119,16 +124,7 @@ export const SweetForm = ({ defaultDate, onSuccess, editingOrder }: SweetFormPro
             />
           </div>
 
-          <div>
-            <Label htmlFor="flavor">Sabor *</Label>
-            <Input
-              id="flavor"
-              value={formData.flavor}
-              onChange={(e) => setFormData({...formData, flavor: e.target.value})}
-              placeholder="Ex: Chocolate, Coco, Limão..."
-              className="border-sweet-200 focus:border-pink-300"
-            />
-          </div>
+
 
           <div>
             <Label htmlFor="value">Valor Total (R$) *</Label>
@@ -141,6 +137,18 @@ export const SweetForm = ({ defaultDate, onSuccess, editingOrder }: SweetFormPro
               onChange={(e) => setFormData({...formData, value: parseFloat(e.target.value) || 0})}
               placeholder="0,00"
               className="border-sweet-200 focus:border-pink-300"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="observations">Observações</Label>
+            <textarea
+              id="observations"
+              value={formData.observations}
+              onChange={(e) => setFormData({...formData, observations: e.target.value})}
+              placeholder="Adicione observações extras sobre o pedido..."
+              className="w-full min-h-[80px] px-3 py-2 rounded-md border border-sweet-200 focus:border-pink-300 focus:ring-2 focus:ring-pink-200 focus:outline-none resize-vertical"
+              rows={3}
             />
           </div>
 

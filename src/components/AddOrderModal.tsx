@@ -15,7 +15,21 @@ interface AddOrderModalProps {
 export const AddOrderModal = ({ isOpen, onClose, defaultDate }: AddOrderModalProps) => {
   const [activeTab, setActiveTab] = useState('cake');
 
+  const handleCloseWithRefresh = async () => {
+    console.log('🔄 [AddOrderModal] Fechando modal e resetando tab');
+    setActiveTab('cake');
+    onClose();
+    
+    // Forçar um pequeno delay e depois recarregar
+    setTimeout(() => {
+      window.location.reload();
+    }, 100);
+    
+    console.log('✅ [AddOrderModal] Modal fechado com refresh');
+  };
+  
   const handleClose = () => {
+    console.log('🔄 [AddOrderModal] Fechando modal sem refresh');
     setActiveTab('cake');
     onClose();
   };
@@ -43,15 +57,15 @@ export const AddOrderModal = ({ isOpen, onClose, defaultDate }: AddOrderModalPro
           </TabsList>
 
           <TabsContent value="cake" className="mt-4">
-            <CakeForm defaultDate={defaultDate} onSuccess={handleClose} />
+            <CakeForm defaultDate={defaultDate} onSuccess={handleCloseWithRefresh} />
           </TabsContent>
 
           <TabsContent value="sweet" className="mt-4">
-            <SweetForm defaultDate={defaultDate} onSuccess={handleClose} />
+            <SweetForm defaultDate={defaultDate} onSuccess={handleCloseWithRefresh} />
           </TabsContent>
 
           <TabsContent value="wedding" className="mt-4">
-            <WeddingForm defaultDate={defaultDate} onSuccess={handleClose} />
+            <WeddingForm defaultDate={defaultDate} onSuccess={handleCloseWithRefresh} />
           </TabsContent>
         </Tabs>
       </DialogContent>

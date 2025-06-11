@@ -4,7 +4,7 @@ import { firebaseOrdersService } from '@/services/firebaseOrders';
 export interface Cake {
   id: string;
   type: 'cake';
-  size: 'PP' | 'P' | 'M' | 'G' | 'GG' | 'Bolo de Corte 70 fatias' | 'Bolo de Corte 100 fatias';
+  size: 'PP' | 'P' | 'M' | 'G' | 'GG' | 'Bolo de Corte 70 fatias' | 'Bolo de Corte 100 fatias' | 'Bolo de Andar' | 'Bolo de Cenoura' | 'Torta Salgada';
   flavor: string;
   filling: string;
   finishing: string;
@@ -13,6 +13,7 @@ export interface Cake {
   value: number;
   date: string;
   customerName: string;
+  observations?: string;
   createdAt: string;
 }
 
@@ -25,6 +26,7 @@ export interface Sweet {
   value: number;
   date: string;
   customerName: string;
+  observations?: string;
   createdAt: string;
 }
 
@@ -36,6 +38,7 @@ export interface WeddingCandy {
   value: number;
   date: string;
   customerName: string;
+  observations?: string;
   createdAt: string;
 }
 
@@ -45,9 +48,12 @@ export const useOrders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdateTimestamp, setLastUpdateTimestamp] = useState<number>(Date.now());
 
   // Carregar pedidos do Firebase na inicialização
   useEffect(() => {
+    let isMounted = true;
+    
     const loadOrders = async () => {
       try {
         setLoading(true);
@@ -55,18 +61,29 @@ export const useOrders = () => {
         
         console.log('🔥 [Firebase Hook] Carregando pedidos do Firebase...');
         const fetchedOrders = await firebaseOrdersService.getAllOrders();
-        setOrders(fetchedOrders);
         
-        console.log(`✅ [Firebase Hook] ${fetchedOrders.length} pedidos carregados`);
+        if (isMounted) {
+          setOrders(fetchedOrders);
+          setLastUpdateTimestamp(Date.now());
+          console.log(`✅ [Firebase Hook] ${fetchedOrders.length} pedidos carregados`);
+        }
       } catch (err) {
         console.error('❌ [Firebase Hook] Erro ao carregar pedidos:', err);
-        setError('Erro ao carregar pedidos. Tente novamente.');
+        if (isMounted) {
+          setError('Erro ao carregar pedidos. Tente novamente.');
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     loadOrders();
+    
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Adicionar pedido
@@ -85,9 +102,15 @@ export const useOrders = () => {
       } as Order;
       
       // Atualizar estado local
-      setOrders(prev => [...prev, newOrder]);
+      setOrders(prev => {
+        const newState = [...prev, newOrder];
+        console.log('🔄 [Firebase Hook] Estado local atualizado. Total de pedidos:', newState.length);
+        return newState;
+      });
+      const newTimestamp = Date.now();
+      setLastUpdateTimestamp(newTimestamp);
       
-      console.log('✅ [Firebase Hook] Pedido adicionado:', newOrder.id);
+      console.log('✅ [Firebase Hook] Pedido adicionado:', newOrder.id, 'Timestamp:', newTimestamp);
     } catch (err) {
       console.error('❌ [Firebase Hook] Erro ao adicionar pedido:', err);
       setError('Erro ao adicionar pedido. Tente novamente.');
@@ -107,6 +130,7 @@ export const useOrders = () => {
           order.id === id ? { ...order, ...updatedOrder } as Order : order
         )
       );
+      setLastUpdateTimestamp(Date.now());
       
       console.log('✅ [Firebase Hook] Pedido atualizado:', id);
     } catch (err) {
@@ -124,6 +148,7 @@ export const useOrders = () => {
       
       // Atualizar estado local
       setOrders(prev => prev.filter(order => order.id !== id));
+      setLastUpdateTimestamp(Date.now());
       
       console.log('✅ [Firebase Hook] Pedido excluído:', id);
     } catch (err) {
@@ -285,6 +310,7 @@ export const useOrders = () => {
       setError(null);
       const fetchedOrders = await firebaseOrdersService.getAllOrders();
       setOrders(fetchedOrders);
+      setLastUpdateTimestamp(Date.now());
       console.log('🔄 [Firebase Hook] Dados atualizados do servidor');
     } catch (err) {
       console.error('❌ [Firebase Hook] Erro ao atualizar dados:', err);
@@ -298,6 +324,7 @@ export const useOrders = () => {
     orders,
     loading,
     error,
+    lastUpdateTimestamp,
     addOrder,
     updateOrder,
     deleteOrder,

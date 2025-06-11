@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LogIn } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { useOrders } from '@/hooks/useOrders';
 
 export const LoginForm = () => {
   const [email, setEmail] = useState('');
@@ -13,6 +14,7 @@ export const LoginForm = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
+  const { refreshOrders } = useOrders();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +34,13 @@ export const LoginForm = () => {
       const success = login(email, password);
       if (!success) {
         setError('Credenciais inválidas');
+      } else {
+        // Após login bem-sucedido, carrega os dados
+        await refreshOrders();
+        // Auto-refresh para garantir interface atualizada
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       }
       // Se success for true, o estado será atualizado automaticamente
     } catch (error) {

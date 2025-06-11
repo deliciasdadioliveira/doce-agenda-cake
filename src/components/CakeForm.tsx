@@ -29,12 +29,16 @@ export const CakeForm = ({ defaultDate, onSuccess, editingOrder }: CakeFormProps
     pickupTime: editingOrder?.pickupTime || '',
     value: editingOrder?.value || 0,
     date: editingOrder?.date || defaultDate,
+    observations: editingOrder?.observations || '',
   });
 
   const sizeOptions = [
     'PP', 'P', 'M', 'G', 'GG', 
     'Bolo de Corte 70 fatias', 
-    'Bolo de Corte 100 fatias'
+    'Bolo de Corte 100 fatias',
+    'Bolo de Andar',
+    'Bolo de Cenoura',
+    'Torta Salgada'
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,21 +60,31 @@ export const CakeForm = ({ defaultDate, onSuccess, editingOrder }: CakeFormProps
 
     try {
       if (editingOrder) {
+        console.log('🔄 [CakeForm] Atualizando pedido:', editingOrder.id, orderData);
         await updateOrder(editingOrder.id, orderData);
+        console.log('✅ [CakeForm] Pedido atualizado com sucesso');
         toast({
           title: "Sucesso! 🎉",
           description: "Pedido de bolo atualizado com sucesso",
         });
+        // Auto-refresh para edição
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       } else {
+        console.log('🔄 [CakeForm] Adicionando novo pedido:', orderData);
         await addOrder(orderData);
+        console.log('✅ [CakeForm] Pedido adicionado com sucesso');
         toast({
           title: "Sucesso! 🎉",
           description: "Pedido de bolo adicionado com sucesso",
         });
       }
       
+      console.log('🔄 [CakeForm] Chamando onSuccess para fechar modal');
       // Só fecha o modal após a operação ser concluída
       onSuccess();
+      console.log('✅ [CakeForm] Modal fechado');
     } catch (error) {
       toast({
         title: "Erro",
@@ -184,6 +198,18 @@ export const CakeForm = ({ defaultDate, onSuccess, editingOrder }: CakeFormProps
               onChange={(e) => setFormData({...formData, value: parseFloat(e.target.value) || 0})}
               placeholder="0,00"
               className="border-sweet-200 focus:border-pink-300"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="observations">Observações</Label>
+            <textarea
+              id="observations"
+              value={formData.observations}
+              onChange={(e) => setFormData({...formData, observations: e.target.value})}
+              placeholder="Adicione observações extras sobre o pedido..."
+              className="w-full min-h-[80px] px-3 py-2 rounded-md border border-sweet-200 focus:border-pink-300 focus:ring-2 focus:ring-pink-200 focus:outline-none resize-vertical"
+              rows={3}
             />
           </div>
 

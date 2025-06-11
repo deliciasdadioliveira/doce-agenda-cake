@@ -23,6 +23,7 @@ export const WeddingForm = ({ defaultDate, onSuccess, editingOrder }: WeddingFor
     flavor: editingOrder?.flavor || '',
     value: editingOrder?.value || 0,
     date: editingOrder?.date || defaultDate,
+    observations: editingOrder?.observations || '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +50,10 @@ export const WeddingForm = ({ defaultDate, onSuccess, editingOrder }: WeddingFor
           title: "Sucesso! 🎉",
           description: "Pedido de bem-casados atualizado com sucesso",
         });
+        // Auto-refresh para edição
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       } else {
         await addOrder(orderData);
         toast({
@@ -129,6 +134,18 @@ export const WeddingForm = ({ defaultDate, onSuccess, editingOrder }: WeddingFor
               onChange={(e) => setFormData({...formData, value: parseFloat(e.target.value) || 0})}
               placeholder="0,00"
               className="border-sweet-200 focus:border-pink-300"
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="observations">Observações</Label>
+            <textarea
+              id="observations"
+              value={formData.observations}
+              onChange={(e) => setFormData({...formData, observations: e.target.value})}
+              placeholder="Adicione observações extras sobre o pedido..."
+              className="w-full min-h-[80px] px-3 py-2 rounded-md border border-sweet-200 focus:border-pink-300 focus:ring-2 focus:ring-pink-200 focus:outline-none resize-vertical"
+              rows={3}
             />
           </div>
 

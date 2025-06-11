@@ -10,10 +10,10 @@ interface MonthlySummaryProps {
 }
 
 export const MonthlySummary = ({ year, month }: MonthlySummaryProps) => {
-  const { getMonthlySummary } = useOrders();
+  const { getMonthlySummary, lastUpdateTimestamp } = useOrders();
   
   // Usar useMemo para garantir que o summary seja recalculado quando necessário
-  const summary = useMemo(() => getMonthlySummary(year, month), [getMonthlySummary, year, month]);
+  const summary = useMemo(() => getMonthlySummary(year, month), [getMonthlySummary, year, month, lastUpdateTimestamp]);
 
   const monthNames = [
     'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',

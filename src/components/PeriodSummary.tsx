@@ -13,10 +13,10 @@ interface PeriodSummaryProps {
 }
 
 export const PeriodSummary = ({ startDate, endDate, title }: PeriodSummaryProps) => {
-  const { getPeriodSummary } = useOrders();
+  const { getPeriodSummary, lastUpdateTimestamp } = useOrders();
   
   // Usar useMemo para garantir que o summary seja recalculado quando necessário
-  const summary = useMemo(() => getPeriodSummary(startDate, endDate), [getPeriodSummary, startDate, endDate]);
+  const summary = useMemo(() => getPeriodSummary(startDate, endDate), [getPeriodSummary, startDate, endDate, lastUpdateTimestamp]);
 
   const formatDate = (dateString: string) => {
     try {

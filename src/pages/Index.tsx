@@ -15,6 +15,7 @@ import { AddOrderModal } from '@/components/AddOrderModal';
 import { OrderCard } from '@/components/OrderCard';
 import { PeriodSummary } from '@/components/PeriodSummary';
 import { MonthlySummary } from '@/components/MonthlySummary';
+import { FinancialSummary } from '@/components/FinancialSummary';
 import { LoginForm } from '@/components/LoginForm';
 
 const Index = () => {
@@ -26,7 +27,8 @@ const Index = () => {
   const [startDate, setStartDate] = useState<string>(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState<string>(format(new Date(), 'yyyy-MM-dd'));
   const [showPeriodResults, setShowPeriodResults] = useState<boolean>(false);
-  const { orders, getOrdersByDate, getDailySummary, refreshOrders } = useOrders();
+
+  const { orders, getOrdersByDate, getDailySummary, refreshOrders, lastUpdateTimestamp } = useOrders();
   const { user, logout, loading } = useAuth();
 
 
@@ -39,8 +41,17 @@ const Index = () => {
 
 
   // Calcular os pedidos diretamente sem useState separado
-  const dayOrders = useMemo(() => getOrdersByDate(selectedDateString), [getOrdersByDate, selectedDateString]);
-  const dailySummary = useMemo(() => getDailySummary(selectedDateString), [getDailySummary, selectedDateString]);
+  const dayOrders = useMemo(() => {
+    const orders = getOrdersByDate(selectedDateString);
+    console.log('🔄 [Index] Recalculando dayOrders para', selectedDateString, '- Encontrados:', orders.length, 'pedidos. Timestamp:', lastUpdateTimestamp);
+    return orders;
+  }, [getOrdersByDate, selectedDateString, lastUpdateTimestamp]);
+  
+  const dailySummary = useMemo(() => {
+    const summary = getDailySummary(selectedDateString);
+    console.log('🔄 [Index] Recalculando dailySummary para', selectedDateString, '- Total orders:', summary.totalOrders);
+    return summary;
+  }, [getDailySummary, selectedDateString, lastUpdateTimestamp]);
 
   // Função helper otimizada com useMemo
   const hasOrdersOnDate = useMemo(() => {
@@ -49,7 +60,7 @@ const Index = () => {
       const dateString = format(date, 'yyyy-MM-dd');
       return datesWithOrders.has(dateString);
     };
-  }, [orders]);
+  }, [orders, lastUpdateTimestamp]);
 
   // AGORA sim podemos ter returns condicionais
   if (loading) {
@@ -90,7 +101,13 @@ const Index = () => {
             </div>
             <div className="flex gap-2">
               <Button 
-                onClick={logout}
+                onClick={() => {
+                  logout();
+                  // Auto-refresh após logout
+                  setTimeout(() => {
+                    window.location.reload();
+                  }, 100);
+                }}
                 variant="outline"
                 size="sm"
                 className="flex-shrink-0"
@@ -103,7 +120,7 @@ const Index = () => {
         </div>
 
         <Tabs defaultValue="calendar" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-6">
             <TabsTrigger value="calendar" className="flex items-center gap-2">
               <CalendarIcon className="w-4 h-4" />
               Agenda
@@ -114,6 +131,9 @@ const Index = () => {
             <TabsTrigger value="monthly" className="flex items-center gap-2">
               <TrendingUp className="w-4 h-4" />
               Mensal
+            </TabsTrigger>
+            <TabsTrigger value="financial" className="flex items-center gap-2">
+              💰 Faturamento
             </TabsTrigger>
           </TabsList>
 
@@ -509,11 +529,19 @@ const Index = () => {
               month={selectedDate.getMonth()} 
             />
           </TabsContent>
+
+          <TabsContent value="financial">
+            <FinancialSummary />
+          </TabsContent>
         </Tabs>
 
         <AddOrderModal 
           isOpen={isAddModalOpen} 
-          onClose={() => setIsAddModalOpen(false)}
+          onClose={() => {
+            console.log('🔄 [Index] Fechando modal de adicionar pedido');
+            setIsAddModalOpen(false);
+            console.log('✅ [Index] Modal fechado');
+          }}
           defaultDate={selectedDateString}
         />
       </div>

@@ -28,6 +28,10 @@ export const OrderCard = ({ order }: OrderCardProps) => {
           title: "Pedido excluído",
           description: "O pedido foi removido com sucesso",
         });
+        // Auto-refresh para garantir interface atualizada
+        setTimeout(() => {
+          window.location.reload();
+        }, 100);
       } catch (error) {
         toast({
           title: "Erro",
@@ -76,11 +80,7 @@ export const OrderCard = ({ order }: OrderCardProps) => {
           </div>
         );
       case 'sweet':
-        return (
-          <div className="space-y-2 text-sm">
-            <p><strong>Sabor:</strong> {order.flavor}</p>
-          </div>
-        );
+        return null;
       case 'wedding':
         return (
           <div className="space-y-2 text-sm">
@@ -145,6 +145,13 @@ export const OrderCard = ({ order }: OrderCardProps) => {
         </CardHeader>
         <CardContent className="pt-0">
           {getOrderDetails()}
+          {order.observations && (
+            <div className="mt-3 p-2 bg-gray-50 rounded-md">
+              <p className="text-sm">
+                <strong>Observações:</strong> {order.observations}
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
